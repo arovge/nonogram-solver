@@ -1,82 +1,80 @@
+use crate::nonogram::{Nonogram, SolvedNonogram};
 use std::iter;
 
-#[derive(Clone)]
-struct Nonogram {
-    cols: Vec<Vec<u8>>,
-    rows: Vec<Vec<u8>>,
-}
+fn solve(nonogram: Nonogram) -> SolvedNonogram {
+    let len = nonogram.cols.len();
 
-impl Nonogram {
-    fn solve(self) -> SolvedNonogram {
-        let len = self.cols.len();
+    let cols: Vec<bool> = iter::repeat_n(true, len).collect();
+    let mut rows: Vec<Vec<bool>> = iter::repeat_n(cols, len).collect();
 
-        let cols: Vec<bool> = iter::repeat_n(true, len).collect();
-        let mut rows: Vec<Vec<bool>> = iter::repeat_n(cols, len).collect();
+    fn set_row(rows: &mut Vec<Vec<bool>>, index: usize, value: bool) {
+        rows[index] = iter::repeat_n(value, rows.len()).collect();
+    }
 
-        for (index, row) in self.rows.iter().enumerate() {
-            if row.len() == 1 && *row.first().unwrap() == 0 {
-                rows[index] = iter::repeat_n(false, len).collect();
+    fn set_col(rows: &mut Vec<Vec<bool>>, index: usize, value: bool) {
+        for row in rows {
+            row[index] = value
+        }
+    }
+
+    for (index, row) in nonogram.rows.iter().enumerate() {
+        if row.len() == 1 {
+            if *row.first().unwrap() == 0 {
+                set_row(&mut rows, index, false);
+            } else if *row.first().unwrap() == len as u8 {
+                set_row(&mut rows, index, true);
             }
         }
-        for (index, col) in self.cols.iter().enumerate() {
-            if col.len() == 1 && *col.first().unwrap() == 0 {
-                for row in &mut rows {
-                    row[index] = false
-                }
+    }
+    for (index, col) in nonogram.cols.iter().enumerate() {
+        if col.len() == 1 {
+            if *col.first().unwrap() == 0 {
+                set_col(&mut rows, index, false);
+            } else if *col.first().unwrap() == len as u8 {
+                set_col(&mut rows, index, true);
             }
         }
-
-        SolvedNonogram { rows }
     }
+
+    SolvedNonogram { rows }
 }
 
-#[derive(Eq, PartialEq, Debug, Clone)]
-struct SolvedNonogram {
-    rows: Vec<Vec<bool>>,
+#[test]
+fn full_col() {
+    let puzzle = Nonogram {
+        cols: vec![vec![3], vec![0], vec![3]],
+        rows: vec![vec![1, 1], vec![1, 1], vec![1, 1]],
+    };
+
+    let expected = SolvedNonogram::try_from(
+        r#"
+        1 0 1
+        1 0 1
+        1 0 1
+    "#,
+    )
+    .unwrap();
+
+    assert_eq!(solve(puzzle), expected);
 }
 
-impl TryFrom<&str> for SolvedNonogram {
-    type Error = &'static str;
+#[test]
+fn full_row() {
+    let puzzle = Nonogram {
+        cols: vec![vec![1, 1], vec![1, 1], vec![1, 1]],
+        rows: vec![vec![3], vec![0], vec![3]],
+    };
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let rows: Vec<&str> = value.trim().split('\n').map(|row| row.trim()).collect();
-        let row_count = rows.len();
-        assert_eq!(row_count, 15);
+    let expected = SolvedNonogram::try_from(
+        r#"
+        1 1 1
+        0 0 0
+        1 1 1
+    "#,
+    )
+    .unwrap();
 
-        let rows: Vec<Vec<&str>> = rows
-            .iter()
-            .map(|row| -> Vec<&str> { row.split(' ').collect::<Vec<&str>>() })
-            .collect();
-
-        let cols_match_row_count = rows.iter().all(|row| row.len() == row_count);
-
-        if !cols_match_row_count {
-            return Err("Not all columns match row count");
-        }
-
-        let all_values_are_bools = rows
-            .iter()
-            .all(|row| row.iter().all(|value| *value == "0" || *value == "1"));
-
-        if !all_values_are_bools {
-            return Err("Not all values are bools");
-        }
-
-        let rows: Vec<Vec<bool>> = rows
-            .iter()
-            .map(|row| -> Vec<bool> {
-                row.iter()
-                    .map(|value| -> bool {
-                        if *value == "0" { false } else { true }
-                    })
-                    .collect()
-            })
-            .collect();
-
-        let solved = SolvedNonogram { rows };
-
-        Ok(solved)
-    }
+    assert_eq!(solve(puzzle), expected);
 }
 
 #[test]
@@ -139,10 +137,5 @@ fn solves() {
     )
     .unwrap();
 
-    for (index, row) in puzzle.clone().solve().rows.iter().enumerate() {
-        assert_eq!(row.len(), 15);
-        assert_eq!(*row, expected.rows[index]);
-    }
-
-    //assert_eq!(puzzle.solve(), expected);
+    assert_eq!(solve(puzzle), expected);
 }
