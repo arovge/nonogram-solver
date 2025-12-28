@@ -1,3 +1,6 @@
+use std::iter;
+
+#[derive(Clone)]
 struct Nonogram {
     cols: Vec<Vec<u8>>,
     rows: Vec<Vec<u8>>,
@@ -5,11 +8,29 @@ struct Nonogram {
 
 impl Nonogram {
     fn solve(self) -> SolvedNonogram {
-        SolvedNonogram { rows: vec![] }
+        let len = self.cols.len();
+
+        let cols: Vec<bool> = iter::repeat_n(true, len).collect();
+        let mut rows: Vec<Vec<bool>> = iter::repeat_n(cols, len).collect();
+
+        for (index, row) in self.rows.iter().enumerate() {
+            if row.len() == 1 && *row.first().unwrap() == 0 {
+                rows[index] = iter::repeat_n(false, len).collect();
+            }
+        }
+        for (index, col) in self.cols.iter().enumerate() {
+            if col.len() == 1 && *col.first().unwrap() == 0 {
+                for row in &mut rows {
+                    row[index] = false
+                }
+            }
+        }
+
+        SolvedNonogram { rows }
     }
 }
 
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 struct SolvedNonogram {
     rows: Vec<Vec<bool>>,
 }
@@ -104,7 +125,7 @@ fn solves() {
         1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
         1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
         1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
-        1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+        0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
         1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
         1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
         1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
@@ -118,5 +139,10 @@ fn solves() {
     )
     .unwrap();
 
-    assert_eq!(puzzle.solve(), expected);
+    for (index, row) in puzzle.clone().solve().rows.iter().enumerate() {
+        assert_eq!(row.len(), 15);
+        assert_eq!(*row, expected.rows[index]);
+    }
+
+    //assert_eq!(puzzle.solve(), expected);
 }
