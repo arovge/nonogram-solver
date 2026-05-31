@@ -58,6 +58,19 @@ impl WorkingNonogram {
     pub fn to_vec(&self) -> Vec<Vec<bool>> {
         self.0.clone()
     }
+
+    /// Converts a `Vec<Vec<bool>>` representation into a `WorkingNonogram`.
+    /// This asserts that row/column lengths match before constructing the `WorkingNonogram`.
+    pub fn from_vec(rows: Vec<Vec<bool>>) -> Result<Self, RowColLenMismatch> {
+        let row_len = rows.len();
+        let rows_cols_len_match = rows.iter().all(|row| row.len() == row_len);
+
+        if !rows_cols_len_match {
+            return Err(RowColLenMismatch);
+        }
+
+        Ok(Self(rows))
+    }
 }
 
 impl Index<usize> for WorkingNonogram {
@@ -74,11 +87,11 @@ pub struct SolvedNonogram(Vec<Vec<bool>>);
 
 impl SolvedNonogram {
     /// Attempts to convert a `WorkingNonogram` into a `SolvedNonogram`. If the `WorkingNonogram` is not solved, an error is returned.
-    pub fn new(nonogram: WorkingNonogram) -> Result<Self, SolvedNonogramParseEr> {
+    pub fn new(nonogram: WorkingNonogram) -> Result<Self, SolvedNonogramParseErr> {
         let nonogram = Self(nonogram.to_vec());
 
         if nonogram.is_solved() {
-            return Err(SolvedNonogramParseEr::NotSolved);
+            return Err(SolvedNonogramParseErr::NotSolved);
         }
 
         Ok(nonogram)
@@ -91,9 +104,8 @@ impl SolvedNonogram {
 
     /// Attempts to convert a `Vec<Vec<bool>>` into a `SolvedNonogram`.
     /// This is different from `SolvedNonogram::new` as this method checks the row/column lengths match, in addition to if the nonogram is solved. The former would have been checked by passing a `WorkingNonogram` struct to `SolvedNonogram::new`.
-    pub fn from_vec(rows: Vec<Vec<bool>>) -> Result<Self, ()> {
-        // TODO: validation
-        Ok(Self(rows))
+    pub fn from_vec(rows: Vec<Vec<bool>>) -> Result<Self, SolvedNonogramParseErr> {
+        SolvedNonogram::new(WorkingNonogram::from_vec(rows)?)
     }
 
     /// Validates the solved nonogram for errors.
@@ -106,28 +118,34 @@ impl SolvedNonogram {
 
 /// Possible errors that could occur when converting a text representation of a nonogram into a `SolvedNonogram`
 #[derive(Debug)]
-pub enum SolvedNonogramParseEr {
+pub enum SolvedNonogramParseErr {
     RowColLenMismatch,
     UnexpectedStr,
     NotSolved,
 }
 
+impl From<RowColLenMismatch> for SolvedNonogramParseErr {
+    fn from(_: RowColLenMismatch) -> Self {
+        Self::RowColLenMismatch
+    }
+}
+
 impl TryFrom<&str> for SolvedNonogram {
-    type Error = SolvedNonogramParseEr;
+    type Error = SolvedNonogramParseErr;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         let rows: Vec<&str> = value.trim().split('\n').map(|row| row.trim()).collect();
-        let row_count = rows.len();
+        let row_len = rows.len();
 
         let rows: Vec<Vec<&str>> = rows
             .iter()
             .map(|row| -> Vec<&str> { row.split(' ').collect::<Vec<&str>>() })
             .collect();
 
-        let cols_match_row_count = rows.iter().all(|row| row.len() == row_count);
+        let rows_cols_len_match = rows.iter().all(|row| row.len() == row_len);
 
-        if !cols_match_row_count {
-            return Err(Self::Error::RowColLenMismatch);
+        if !rows_cols_len_match {
+            return Err(SolvedNonogramParseErr::RowColLenMismatch);
         }
 
         let all_values_are_bools = rows
@@ -135,7 +153,7 @@ impl TryFrom<&str> for SolvedNonogram {
             .all(|row| row.iter().all(|value| *value == "0" || *value == "1"));
 
         if !all_values_are_bools {
-            return Err(Self::Error::UnexpectedStr);
+            return Err(SolvedNonogramParseErr::UnexpectedStr);
         }
 
         let rows: Vec<Vec<bool>> = rows
@@ -153,8 +171,6 @@ impl TryFrom<&str> for SolvedNonogram {
             })
             .collect();
 
-        let nonogram = SolvedNonogram::from_vec(rows).unwrap();
-
-        Ok(nonogram)
+        SolvedNonogram::from_vec(rows)
     }
 }
