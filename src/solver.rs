@@ -2,8 +2,8 @@ use crate::nonogram::{NonogramHints, SolvedNonogram, WorkingNonogram};
 use std::iter;
 
 fn solve(hints: NonogramHints) -> SolvedNonogram {
-    let mut nonogram = WorkingNonogram::new(hints.len());
-    let len = hints.len();
+    let mut nonogram = WorkingNonogram::new(hints);
+    let len = nonogram.len();
 
     let cols: Vec<bool> = iter::repeat_n(true, len).collect();
     let mut rows: Vec<Vec<bool>> = iter::repeat_n(cols, len).collect();
@@ -18,16 +18,16 @@ fn solve(hints: NonogramHints) -> SolvedNonogram {
         }
     }
 
-    for (index, row) in nonogram.rows().iter().enumerate() {
-        if row.len() == 1 {
-            if *row.first().unwrap() == false {
-                set_row(&mut rows, index, false);
-            }
-            // else if *row.first().unwrap() == len as u8 {
-            //     set_row(&mut rows, index, true);
-            // }
-        }
-    }
+    // for (index, row) in nonogram.rows().iter().enumerate() {
+    //     if row.len() == 1 {
+    //         if *row.first().unwrap() == false {
+    //             set_row(&mut rows, index, false);
+    //         }
+    // else if *row.first().unwrap() == len as u8 {
+    //     set_row(&mut rows, index, true);
+    // }
+    //     }
+    // }
     // for (index, col) in nonogram.cols().iter().enumerate() {
     //     if col.len() == 1 {
     //         if *col.first().unwrap() == 0 {
@@ -38,7 +38,7 @@ fn solve(hints: NonogramHints) -> SolvedNonogram {
     //     }
     // }
 
-    SolvedNonogram::new_no_validate(rows).unwrap()
+    SolvedNonogram::new(nonogram).unwrap()
 }
 
 #[test]
