@@ -2,7 +2,7 @@ use crate::nonogram::{NonogramHints, SolvedNonogram, WorkingNonogram};
 use std::iter;
 
 fn solve(hints: NonogramHints) -> SolvedNonogram {
-    let mut nonogram = WorkingNonogram::new(hints);
+    let mut nonogram = WorkingNonogram::new(&hints);
     let len = nonogram.len();
 
     let cols: Vec<bool> = iter::repeat_n(true, len).collect();
@@ -38,7 +38,7 @@ fn solve(hints: NonogramHints) -> SolvedNonogram {
     //     }
     // }
 
-    SolvedNonogram::new(nonogram).unwrap()
+    SolvedNonogram::new(nonogram, hints).unwrap()
 }
 
 #[test]

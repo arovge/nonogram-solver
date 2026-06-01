@@ -38,12 +38,13 @@ impl NonogramHints {
 pub struct RowColLenMismatch;
 
 /// An intermediate/in-progress nonogram used for building a `SolvedNonogram`.
+#[derive(Debug, Eq, PartialEq)]
 pub struct WorkingNonogram(Vec<Vec<bool>>);
 
 impl WorkingNonogram {
     /// Creates a new `WorkingNonogram` based on the hints for the puzzle.
     /// Initializes a 2D array of the set `NonogramHints` length. The values in the 2D array are initialized to `false`.
-    pub fn new(hints: NonogramHints) -> Self {
+    pub fn new(hints: &NonogramHints) -> Self {
         let len = hints.len();
         Self(vec![vec![false; len]; len])
     }
@@ -71,6 +72,15 @@ impl WorkingNonogram {
 
         Ok(Self(rows))
     }
+
+    /// Validates the solved nonogram for errors.
+    /// This is used to assert a `SolvedNonogram` is solved.
+    pub(crate) fn is_solved(&self, hints: NonogramHints) -> bool {
+        for row in self.0.clone().into_iter() {
+            for col in row {}
+        }
+        true
+    }
 }
 
 impl Index<usize> for WorkingNonogram {
@@ -82,42 +92,38 @@ impl Index<usize> for WorkingNonogram {
 }
 
 /// A solved nonogram. This struct ensures that the held nonogram is solved.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct SolvedNonogram(Vec<Vec<bool>>);
 
 impl SolvedNonogram {
     /// Attempts to convert a `WorkingNonogram` into a `SolvedNonogram`. If the `WorkingNonogram` is not solved, an error is returned.
-    pub fn new(nonogram: WorkingNonogram) -> Result<Self, SolvedNonogramParseErr> {
-        let nonogram = Self(nonogram.to_vec());
-
-        if nonogram.is_solved() {
+    pub fn new(
+        nonogram: WorkingNonogram,
+        hints: NonogramHints,
+    ) -> Result<Self, SolvedNonogramParseErr> {
+        if nonogram.is_solved(hints) {
             return Err(SolvedNonogramParseErr::NotSolved);
         }
 
-        Ok(nonogram)
-    }
-
-    /// Convert a `WorkingNonogram` into a `SolvedNonogram`, ignoring whether the `WorkingNonogram` is solved or not.
-    pub fn new_no_validate(nonogram: WorkingNonogram) -> Self {
-        Self(nonogram.to_vec())
+        Ok(Self(nonogram.to_vec()))
     }
 
     /// Attempts to convert a `Vec<Vec<bool>>` into a `SolvedNonogram`.
-    /// This is different from `SolvedNonogram::new` as this method checks the row/column lengths match, in addition to if the nonogram is solved. The former would have been checked by passing a `WorkingNonogram` struct to `SolvedNonogram::new`.
-    pub fn from_vec(rows: Vec<Vec<bool>>) -> Result<Self, SolvedNonogramParseErr> {
-        SolvedNonogram::new(WorkingNonogram::from_vec(rows)?)
-    }
+    /// This is different from `SolvedNonogram::new` as this method only checks the row/column lengths match and does not check if the nonogram is solved.
+    pub fn from_vec(rows: Vec<Vec<bool>>) -> Result<Self, RowColLenMismatch> {
+        let row_len = rows.len();
+        let rows_cols_len_match = rows.iter().all(|row| row.len() == row_len);
 
-    /// Validates the solved nonogram for errors.
-    /// This is used to assert a `SolvedNonogram` is in fact solved.
-    fn is_solved(&self) -> bool {
-        // TODO: the rest of the owl
-        true
+        if !rows_cols_len_match {
+            return Err(RowColLenMismatch);
+        }
+
+        Ok(Self(rows))
     }
 }
 
 /// Possible errors that could occur when converting a text representation of a nonogram into a `SolvedNonogram`
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum SolvedNonogramParseErr {
     RowColLenMismatch,
     UnexpectedStr,
@@ -127,6 +133,21 @@ pub enum SolvedNonogramParseErr {
 impl From<RowColLenMismatch> for SolvedNonogramParseErr {
     fn from(_: RowColLenMismatch) -> Self {
         Self::RowColLenMismatch
+    }
+}
+
+impl Into<String> for SolvedNonogram {
+    fn into(self) -> String {
+        self.0
+            .iter()
+            .map(|row| {
+                row.iter()
+                    .map(|x| (*x as u8).to_string())
+                    .collect::<Vec<String>>()
+                    .join(" ")
+            })
+            .collect::<Vec<String>>()
+            .join("\n")
     }
 }
 
@@ -171,6 +192,150 @@ impl TryFrom<&str> for SolvedNonogram {
             })
             .collect();
 
-        SolvedNonogram::from_vec(rows)
+        Ok(SolvedNonogram::from_vec(rows)?)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::nonogram::{NonogramHints, SolvedNonogram, SolvedNonogramParseErr, WorkingNonogram};
+
+    #[test]
+    fn hint_parse_invalid() {
+        let hints = NonogramHints::new(
+            vec![vec![1, 2], vec![3, 4]],
+            vec![vec![5], vec![6, 7], vec![8]],
+        );
+        assert!(hints.is_err());
+    }
+
+    #[test]
+    fn hint_parse() {
+        let hints = NonogramHints::new(
+            vec![vec![1, 2, 3], vec![4, 5, 6, 7]],
+            vec![vec![8, 9], vec![]],
+        );
+        assert!(hints.is_ok());
+    }
+
+    #[test]
+    fn working_init() {
+        let hints = NonogramHints::new(
+            vec![vec![1, 2, 3], vec![4, 5, 6, 7]],
+            vec![vec![8, 9], vec![]],
+        )
+        .unwrap();
+        let nonogram = WorkingNonogram::new(&hints);
+
+        assert_eq!(nonogram.len(), 2);
+        assert!(nonogram.0.iter().all(|row| row.iter().all(|col| !*col)));
+    }
+
+    #[test]
+    fn working_to_vec() {
+        let hints = NonogramHints::new(
+            vec![vec![1, 2, 3], vec![4, 5, 6, 7]],
+            vec![vec![8, 9], vec![]],
+        )
+        .unwrap();
+        let nonogram = WorkingNonogram::new(&hints);
+        let vec = nonogram.to_vec();
+
+        assert_eq!(vec, vec![vec![false, false], vec![false, false]]);
+    }
+
+    #[test]
+    fn working_from_vec_invalid() {
+        let nonogram =
+            WorkingNonogram::from_vec(vec![vec![false, false, false], vec![false, false]]);
+
+        assert!(nonogram.is_err());
+    }
+
+    #[test]
+    fn working_from_vec() {
+        let hints = NonogramHints::new(
+            vec![vec![1, 2, 3], vec![4, 5, 6, 7]],
+            vec![vec![8, 9], vec![]],
+        )
+        .unwrap();
+        let nonogram = WorkingNonogram::new(&hints);
+        let from_vec_nonogram = WorkingNonogram::from_vec(nonogram.to_vec()).unwrap();
+
+        assert_eq!(nonogram, from_vec_nonogram);
+    }
+
+    #[test]
+    fn working_is_solved() {
+        // TODO
+    }
+
+    #[test]
+    fn solved_new() {
+        // TODO
+    }
+
+    #[test]
+    fn solved_from_vec_invalid() {
+        let nonogram =
+            SolvedNonogram::from_vec(vec![vec![false, false, false], vec![false, false]]);
+        assert!(nonogram.is_err());
+    }
+
+    #[test]
+    fn solved_from_vec() {
+        let nonogram = SolvedNonogram::from_vec(vec![vec![false, false], vec![false, false]]);
+        assert!(nonogram.is_ok());
+    }
+
+    #[test]
+    fn solved_into_str() {
+        let nonogram =
+            SolvedNonogram::from_vec(vec![vec![false, true], vec![true, false]]).unwrap();
+
+        let str: String = nonogram.clone().into();
+        let expected = "0 1\n1 0";
+        assert_eq!(str, expected);
+
+        let parsed = SolvedNonogram::try_from(expected);
+        assert!(parsed.is_ok());
+        assert_eq!(nonogram, parsed.unwrap());
+    }
+
+    #[test]
+    fn solved_from_str_invalid_len() {
+        let str = "0 1 0\n1 0";
+
+        let nonogram = SolvedNonogram::try_from(str);
+        assert!(nonogram.is_err());
+        assert_eq!(
+            nonogram.unwrap_err(),
+            SolvedNonogramParseErr::RowColLenMismatch
+        );
+    }
+
+    #[test]
+    fn solved_from_str_invalid_val() {
+        let str = "0 2\n1 0";
+
+        let nonogram = SolvedNonogram::try_from(str);
+        assert!(nonogram.is_err());
+        assert_eq!(nonogram.unwrap_err(), SolvedNonogramParseErr::UnexpectedStr);
+    }
+
+    #[test]
+    fn solved_from_str_not_solved() {
+        // TODO
+    }
+
+    #[test]
+    fn solved_from_str() {
+        let str = "0 1\n1 0";
+
+        let nonogram = SolvedNonogram::try_from(str);
+        assert!(nonogram.is_ok());
+
+        let new_str: String = nonogram.unwrap().into();
+        assert_eq!(str, new_str.as_str());
     }
 }
