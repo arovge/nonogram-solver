@@ -1,4 +1,5 @@
 use std::ops::Index;
+use std::range::Range;
 
 /// Represents the row/col "hints" for solving the nonogram.
 #[derive(Debug)]
@@ -76,12 +77,17 @@ impl WorkingNonogram {
     /// Validates the solved nonogram for errors.
     /// This is used to assert a `SolvedNonogram` is solved.
     pub(crate) fn is_solved(&self, hints: NonogramHints) -> bool {
-        let axes = 0..self.len();
+        // FUTURE: Replace with `0..self.len()` in future
+        // rust edition once new range types replaces this sugar.
+        let axes = Range {
+            start: 0,
+            end: self.len(),
+        };
         let rows_solved = axes
-            .clone()
+            .iter()
             .all(|i| WorkingNonogram::is_axis_solved(self.row(i), hints.row(i)));
         let cols_solved = axes
-            .clone()
+            .iter()
             .all(|i| WorkingNonogram::is_axis_solved(self.col(i), hints.col(i)));
         rows_solved && cols_solved
     }
