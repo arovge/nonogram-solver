@@ -23,13 +23,13 @@ impl NonogramHints {
     }
 
     /// A row of hints.
-    pub fn rows(&self) -> Vec<Vec<u8>> {
-        self.rows.clone()
+    pub fn row(&self, index: usize) -> Vec<u8> {
+        self.rows[index].clone()
     }
 
     /// A column of hints.
-    pub fn cols(&self) -> Vec<Vec<u8>> {
-        self.cols.clone()
+    pub fn col(&self, index: usize) -> Vec<u8> {
+        self.cols[index].clone()
     }
 }
 
@@ -76,10 +76,36 @@ impl WorkingNonogram {
     /// Validates the solved nonogram for errors.
     /// This is used to assert a `SolvedNonogram` is solved.
     pub(crate) fn is_solved(&self, hints: NonogramHints) -> bool {
-        for row in self.0.clone().into_iter() {
-            for col in row {}
-        }
-        true
+        let axes = 0..self.len();
+        let rows_solved = axes
+            .clone()
+            .all(|i| WorkingNonogram::is_axis_solved(self.row(i), hints.row(i)));
+        let cols_solved = axes
+            .clone()
+            .all(|i| WorkingNonogram::is_axis_solved(self.col(i), hints.col(i)));
+        rows_solved && cols_solved
+    }
+
+    /// Checks if an axis is solved using the same axis/index from the `NonogramHints` struct.
+    /// Can be used interchangibly for rows/columns.
+    fn is_axis_solved(axis: Vec<bool>, hint: Vec<u8>) -> bool {
+        // TODO
+        false
+    }
+
+    /// Constructs a `Vec<u8>` for a given row.
+    fn row(&self, index: usize) -> Vec<bool> {
+        self.0[index].clone()
+    }
+
+    /// Constructs a `Vec<u8>` for a given column.
+    fn col(&self, index: usize) -> Vec<bool> {
+        self.0.iter().fold(vec![], |acc, row| {
+            acc.iter()
+                .copied()
+                .chain(std::iter::once(row[index]))
+                .collect()
+        })
     }
 }
 
@@ -266,8 +292,47 @@ mod tests {
     }
 
     #[test]
+    fn working_is_solved_not() {
+        let hints = NonogramHints::new(
+            vec![vec![1, 2, 3], vec![4, 5, 6, 7]],
+            vec![vec![8, 9], vec![]],
+        )
+        .unwrap();
+        let nonogram = WorkingNonogram::new(&hints);
+        assert!(!nonogram.is_solved(hints));
+    }
+
+    #[test]
     fn working_is_solved() {
-        // TODO
+        let hints = NonogramHints::new(vec![vec![2], vec![2]], vec![vec![2], vec![2]]).unwrap();
+        let nonogram = WorkingNonogram::new(&hints);
+        assert!(nonogram.is_solved(hints));
+    }
+
+    #[test]
+    fn working_row() {
+        let nonogram = WorkingNonogram::from_vec(vec![
+            vec![false, true, false],
+            vec![true, false, true],
+            vec![true, true, false],
+        ])
+        .unwrap();
+        assert_eq!(nonogram.row(0), vec![false, true, false]);
+        assert_eq!(nonogram.row(1), vec![true, false, true]);
+        assert_eq!(nonogram.row(2), vec![true, true, false]);
+    }
+
+    #[test]
+    fn working_col() {
+        let nonogram = WorkingNonogram::from_vec(vec![
+            vec![false, true, false],
+            vec![true, false, true],
+            vec![true, true, false],
+        ])
+        .unwrap();
+        assert_eq!(nonogram.col(0), vec![false, true, true]);
+        assert_eq!(nonogram.col(1), vec![true, false, true]);
+        assert_eq!(nonogram.col(2), vec![false, true, false]);
     }
 
     #[test]
