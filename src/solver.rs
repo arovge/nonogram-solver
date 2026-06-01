@@ -1,20 +1,33 @@
-use crate::nonogram::{NonogramHints, SolvedNonogram, WorkingNonogram};
+use crate::nonogram::{NonogramHints, NotSolved, SolvedNonogram, WorkingNonogram};
 use std::iter;
 
-fn solve(hints: NonogramHints) -> SolvedNonogram {
+fn solve(hints: NonogramHints) -> Result<SolvedNonogram, NotSolved> {
     let mut nonogram = WorkingNonogram::new(&hints);
     let len = nonogram.len();
 
-    let cols: Vec<bool> = iter::repeat_n(true, len).collect();
-    let mut rows: Vec<Vec<bool>> = iter::repeat_n(cols, len).collect();
-
-    fn set_row(rows: &mut Vec<Vec<bool>>, index: usize, value: bool) {
-        rows[index] = iter::repeat_n(value, rows.len()).collect();
+    fn set_row(nonogram: &mut WorkingNonogram, index: usize) {
+        let len = (*nonogram).len();
+        for col_index in 0..len {
+            nonogram.set(index, col_index);
+        }
     }
 
-    fn set_col(rows: &mut Vec<Vec<bool>>, index: usize, value: bool) {
-        for row in rows {
-            row[index] = value
+    fn set_col(nonogram: &mut WorkingNonogram, index: usize) {
+        let len = (*nonogram).len();
+        for row_index in 0..len {
+            nonogram.set(row_index, index);
+        }
+    }
+
+    for i in 0..hints.len() {
+        let row = hints.row(i);
+        if row.len() == 1 && row.first().is_some_and(|a| *a == len as u8) {
+            set_row(&mut nonogram, i);
+        }
+
+        let col = hints.col(i);
+        if col.len() == 1 && col.first().is_some_and(|a| *a == len as u8) {
+            set_col(&mut nonogram, i);
         }
     }
 
@@ -38,34 +51,34 @@ fn solve(hints: NonogramHints) -> SolvedNonogram {
     //     }
     // }
 
-    SolvedNonogram::new(nonogram, hints).unwrap()
+    SolvedNonogram::new(nonogram, hints)
 }
 
 #[test]
 fn full_col() {
     let hints = NonogramHints::new(
-        vec![vec![3], vec![0], vec![3]],
-        vec![vec![1, 1], vec![1, 1], vec![1, 1]],
+        vec![vec![1], vec![1], vec![1]],
+        vec![vec![0], vec![0], vec![3]],
     )
     .unwrap();
 
     let expected = SolvedNonogram::try_from(
         r#"
-        1 0 1
-        1 0 1
-        1 0 1
+        0 0 1
+        0 0 1
+        0 0 1
     "#,
     )
     .unwrap();
 
-    assert_eq!(solve(hints), expected);
+    assert_eq!(solve(hints).ok(), Some(expected));
 }
 
 #[test]
 fn full_row() {
     let puzzle = NonogramHints::new(
+        vec![vec![3], vec![], vec![3]],
         vec![vec![1, 1], vec![1, 1], vec![1, 1]],
-        vec![vec![3], vec![0], vec![3]],
     )
     .unwrap();
 
@@ -78,7 +91,7 @@ fn full_row() {
     )
     .unwrap();
 
-    assert_eq!(solve(puzzle), expected);
+    assert_eq!(solve(puzzle).ok(), Some(expected));
 }
 
 #[test]
@@ -142,5 +155,5 @@ fn solves() {
     )
     .unwrap();
 
-    assert_eq!(solve(puzzle), expected);
+    assert_eq!(solve(puzzle).ok(), Some(expected));
 }

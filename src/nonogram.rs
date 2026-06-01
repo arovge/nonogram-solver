@@ -74,6 +74,11 @@ impl WorkingNonogram {
         Ok(Self(rows))
     }
 
+    /// Sets a specific value to true.
+    pub fn set(&mut self, row_index: usize, col_index: usize) {
+        self.0[row_index][col_index] = true;
+    }
+
     /// Validates the solved nonogram for errors.
     /// This is used to assert a `SolvedNonogram` is solved.
     pub(crate) fn is_solved(&self, hints: NonogramHints) -> bool {
@@ -133,12 +138,9 @@ pub struct SolvedNonogram(Vec<Vec<bool>>);
 
 impl SolvedNonogram {
     /// Attempts to convert a `WorkingNonogram` into a `SolvedNonogram`. If the `WorkingNonogram` is not solved, an error is returned.
-    pub fn new(
-        nonogram: WorkingNonogram,
-        hints: NonogramHints,
-    ) -> Result<Self, SolvedNonogramParseErr> {
+    pub fn new(nonogram: WorkingNonogram, hints: NonogramHints) -> Result<Self, NotSolved> {
         if nonogram.is_solved(hints) {
-            return Err(SolvedNonogramParseErr::NotSolved);
+            return Err(NotSolved);
         }
 
         Ok(Self(nonogram.to_vec()))
@@ -158,15 +160,18 @@ impl SolvedNonogram {
     }
 }
 
+/// Denotes that the nonogram is not solved.
+#[derive(Debug)]
+pub struct NotSolved;
+
 /// Possible errors that could occur when converting a text representation of a nonogram into a `SolvedNonogram`
 #[derive(Debug, Eq, PartialEq)]
-pub enum SolvedNonogramParseErr {
+pub enum SolvedNonogramParseError {
     RowColLenMismatch,
     UnexpectedStr,
-    NotSolved,
 }
 
-impl From<RowColLenMismatch> for SolvedNonogramParseErr {
+impl From<RowColLenMismatch> for SolvedNonogramParseError {
     fn from(_: RowColLenMismatch) -> Self {
         Self::RowColLenMismatch
     }
@@ -188,7 +193,7 @@ impl Into<String> for SolvedNonogram {
 }
 
 impl TryFrom<&str> for SolvedNonogram {
-    type Error = SolvedNonogramParseErr;
+    type Error = SolvedNonogramParseError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         let rows: Vec<&str> = value.trim().split('\n').map(|row| row.trim()).collect();
@@ -202,7 +207,7 @@ impl TryFrom<&str> for SolvedNonogram {
         let rows_cols_len_match = rows.iter().all(|row| row.len() == row_len);
 
         if !rows_cols_len_match {
-            return Err(SolvedNonogramParseErr::RowColLenMismatch);
+            return Err(SolvedNonogramParseError::RowColLenMismatch);
         }
 
         let all_values_are_bools = rows
@@ -210,7 +215,7 @@ impl TryFrom<&str> for SolvedNonogram {
             .all(|row| row.iter().all(|value| *value == "0" || *value == "1"));
 
         if !all_values_are_bools {
-            return Err(SolvedNonogramParseErr::UnexpectedStr);
+            return Err(SolvedNonogramParseError::UnexpectedStr);
         }
 
         let rows: Vec<Vec<bool>> = rows
@@ -234,7 +239,9 @@ impl TryFrom<&str> for SolvedNonogram {
 
 #[cfg(test)]
 mod tests {
-    use crate::nonogram::{NonogramHints, SolvedNonogram, SolvedNonogramParseErr, WorkingNonogram};
+    use crate::nonogram::{
+        NonogramHints, SolvedNonogram, SolvedNonogramParseError, WorkingNonogram,
+    };
 
     #[test]
     fn hint_parse_invalid() {
@@ -405,7 +412,7 @@ mod tests {
         assert!(nonogram.is_err());
         assert_eq!(
             nonogram.unwrap_err(),
-            SolvedNonogramParseErr::RowColLenMismatch
+            SolvedNonogramParseError::RowColLenMismatch
         );
     }
 
@@ -415,12 +422,10 @@ mod tests {
 
         let nonogram = SolvedNonogram::try_from(str);
         assert!(nonogram.is_err());
-        assert_eq!(nonogram.unwrap_err(), SolvedNonogramParseErr::UnexpectedStr);
-    }
-
-    #[test]
-    fn solved_from_str_not_solved() {
-        // TODO
+        assert_eq!(
+            nonogram.unwrap_err(),
+            SolvedNonogramParseError::UnexpectedStr
+        );
     }
 
     #[test]
