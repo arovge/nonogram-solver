@@ -19,37 +19,42 @@ fn solve(hints: NonogramHints) -> Result<SolvedNonogram, NotSolved> {
         }
     }
 
+    // entire axis is highlighted
     for i in 0..hints.len() {
         let row = hints.row(i);
-        if row.len() == 1 && row.first().is_some_and(|a| *a == len as u8) {
+        if row.len() == 1 && *row.first().unwrap() == len as u8 {
             set_row(&mut nonogram, i);
         }
 
         let col = hints.col(i);
-        if col.len() == 1 && col.first().is_some_and(|a| *a == len as u8) {
+        if col.len() == 1 && *col.first().unwrap() == len as u8 {
             set_col(&mut nonogram, i);
         }
     }
 
-    // for (index, row) in nonogram.rows().iter().enumerate() {
-    //     if row.len() == 1 {
-    //         if *row.first().unwrap() == false {
-    //             set_row(&mut rows, index, false);
-    //         }
-    // else if *row.first().unwrap() == len as u8 {
-    //     set_row(&mut rows, index, true);
-    // }
-    //     }
-    // }
-    // for (index, col) in nonogram.cols().iter().enumerate() {
-    //     if col.len() == 1 {
-    //         if *col.first().unwrap() == 0 {
-    //             set_col(&mut rows, index, false);
-    //         } else if *col.first().unwrap() == len as u8 {
-    //             set_col(&mut rows, index, true);
-    //         }
-    //     }
-    // }
+    // TODO: This isn't implemented quite right
+    // It assumes this strategy is being used on a full axis - not
+    // an axis that has become smaller because previous techniques have shortened it.
+    //
+    // for an axis and a hint:
+    // if the axis len == sum of elements + hint len - 1
+    // then there is only one possible layout for the hint to fit in the axis
+    for i in 0..hints.len() {
+        let row = hints.row(i);
+        let hint_sum: u8 = row.iter().sum();
+        if nonogram.row(i).len() == hint_sum as usize + row.len() - 1 {
+            for value in row {
+                // nonogram.set(i, col_index);
+                // set_row(&mut nonogram, i);
+            }
+        }
+
+        let col = hints.col(i);
+        let hint_sum: u8 = col.iter().sum();
+        if nonogram.col(i).len() == hint_sum as usize + col.len() - 1 {
+            // set_col(&mut nonogram, i);
+        }
+    }
 
     SolvedNonogram::new(nonogram, hints)
 }
@@ -87,6 +92,26 @@ fn full_row() {
         1 1 1
         0 0 0
         1 1 1
+    "#,
+    )
+    .unwrap();
+
+    assert_eq!(solve(puzzle).ok(), Some(expected));
+}
+
+#[test]
+fn row_len_eq_hint_len_plus_one() {
+    let puzzle = NonogramHints::new(
+        vec![vec![1, 1], vec![], vec![1, 1]],
+        vec![vec![1, 1], vec![], vec![1, 1]],
+    )
+    .unwrap();
+
+    let expected = SolvedNonogram::try_from(
+        r#"
+        1 0 1
+        0 0 0
+        1 0 1
     "#,
     )
     .unwrap();

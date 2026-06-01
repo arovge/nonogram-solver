@@ -109,26 +109,18 @@ impl WorkingNonogram {
     }
 
     /// Constructs a `Vec<u8>` for a given row.
-    fn row(&self, index: usize) -> Vec<bool> {
+    pub fn row(&self, index: usize) -> Vec<bool> {
         self.0[index].clone()
     }
 
     /// Constructs a `Vec<u8>` for a given column.
-    fn col(&self, index: usize) -> Vec<bool> {
+    pub fn col(&self, index: usize) -> Vec<bool> {
         self.0.iter().fold(vec![], |acc, row| {
             acc.iter()
                 .copied()
                 .chain(std::iter::once(row[index]))
                 .collect()
         })
-    }
-}
-
-impl Index<usize> for WorkingNonogram {
-    type Output = Vec<bool>;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.0[index]
     }
 }
 
