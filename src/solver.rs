@@ -1,5 +1,4 @@
 use crate::nonogram::{NonogramHints, NotSolved, SolvedNonogram, WorkingNonogram};
-use std::iter;
 
 fn solve(hints: NonogramHints) -> Result<SolvedNonogram, NotSolved> {
     let mut nonogram = WorkingNonogram::new(&hints);
@@ -8,14 +7,14 @@ fn solve(hints: NonogramHints) -> Result<SolvedNonogram, NotSolved> {
     fn set_row(nonogram: &mut WorkingNonogram, index: usize) {
         let len = (*nonogram).len();
         for col_index in 0..len {
-            nonogram.set(index, col_index);
+            nonogram.fill(index, col_index);
         }
     }
 
     fn set_col(nonogram: &mut WorkingNonogram, index: usize) {
         let len = (*nonogram).len();
         for row_index in 0..len {
-            nonogram.set(row_index, index);
+            nonogram.fill(row_index, index);
         }
     }
 
@@ -42,7 +41,7 @@ fn solve(hints: NonogramHints) -> Result<SolvedNonogram, NotSolved> {
     for i in 0..hints.len() {
         let row = hints.row(i);
         let hint_sum: u8 = row.iter().sum();
-        if nonogram.row(i).len() == hint_sum as usize + row.len() - 1 {
+        if !row.is_empty() && nonogram.row(i).len() == hint_sum as usize + row.len() - 1 {
             for value in row {
                 // nonogram.set(i, col_index);
                 // set_row(&mut nonogram, i);
@@ -51,7 +50,7 @@ fn solve(hints: NonogramHints) -> Result<SolvedNonogram, NotSolved> {
 
         let col = hints.col(i);
         let hint_sum: u8 = col.iter().sum();
-        if nonogram.col(i).len() == hint_sum as usize + col.len() - 1 {
+        if !col.is_empty() && nonogram.col(i).len() == hint_sum as usize + col.len() - 1 {
             // set_col(&mut nonogram, i);
         }
     }
