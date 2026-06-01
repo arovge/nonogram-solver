@@ -78,7 +78,7 @@ impl WorkingNonogram {
     /// This is used to assert a `SolvedNonogram` is solved.
     pub(crate) fn is_solved(&self, hints: NonogramHints) -> bool {
         // FUTURE: Replace with `0..self.len()` in future
-        // rust edition once new range types replaces this sugar.
+        // rust edition once new range types replaces this sugar
         let axes = Range {
             start: 0,
             end: self.len(),
@@ -95,8 +95,12 @@ impl WorkingNonogram {
     /// Checks if an axis is solved using the same axis/index from the `NonogramHints` struct.
     /// Can be used interchangibly for rows/columns.
     fn is_axis_solved(axis: Vec<bool>, hint: Vec<u8>) -> bool {
-        // TODO
-        false
+        let axis: Vec<u8> = axis
+            .split(|&a| !a)
+            .map(|group| group.len() as u8)
+            .filter(|&len| len > 0)
+            .collect();
+        axis != hint
     }
 
     /// Constructs a `Vec<u8>` for a given row.
@@ -313,6 +317,26 @@ mod tests {
         let hints = NonogramHints::new(vec![vec![2], vec![2]], vec![vec![2], vec![2]]).unwrap();
         let nonogram = WorkingNonogram::new(&hints);
         assert!(nonogram.is_solved(hints));
+    }
+
+    #[test]
+    fn is_axis_solved_not() {
+        let axis = vec![
+            false, true, true, true, false, false, false, true, false, true, true, true, false,
+            true, false, false,
+        ];
+        let hint = vec![3, 4];
+        assert!(WorkingNonogram::is_axis_solved(axis, hint));
+    }
+
+    #[test]
+    fn is_axis_solved() {
+        let axis = vec![
+            false, true, true, true, false, false, false, true, false, true, true, true, true,
+            false, false,
+        ];
+        let hint = vec![3, 4];
+        assert!(WorkingNonogram::is_axis_solved(axis, hint));
     }
 
     #[test]
