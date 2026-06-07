@@ -1,5 +1,3 @@
-use std::range::Range;
-
 /// Represents the row/col "hints" for solving the nonogram.
 #[derive(Debug)]
 pub struct NonogramHints {
@@ -41,7 +39,7 @@ pub struct RowColLenMismatch;
 pub enum Cell {
     #[default]
     Default,
-    Blank,
+    Empty,
     Filled,
 }
 
@@ -89,19 +87,11 @@ impl WorkingNonogram {
     /// Validates the solved nonogram for errors.
     /// This is used to assert a `SolvedNonogram` is solved.
     pub(crate) fn is_solved(&self, hints: NonogramHints) -> bool {
-        // FUTURE: Replace with `0..self.len()` in future
-        // rust edition once new range types replaces this sugar
-        let axes = Range {
-            start: 0,
-            end: self.len(),
-        };
-        let rows_solved = axes
-            .iter()
-            .all(|i| WorkingNonogram::is_axis_solved(self.row(i), hints.row(i)));
-        let cols_solved = axes
-            .iter()
-            .all(|i| WorkingNonogram::is_axis_solved(self.col(i), hints.col(i)));
-        rows_solved && cols_solved
+        let mut axes = 0..self.len();
+        axes.all(|i| {
+            WorkingNonogram::is_axis_solved(self.row(i), hints.row(i))
+                && WorkingNonogram::is_axis_solved(self.col(i), hints.col(i))
+        })
     }
 
     /// Checks if an axis is solved using the same axis/index from the `NonogramHints` struct.
@@ -351,22 +341,22 @@ mod tests {
     #[test]
     fn is_axis_solved_not() {
         let axis = vec![
-            Cell::Blank,
+            Cell::Empty,
             Cell::Filled,
             Cell::Filled,
             Cell::Filled,
-            Cell::Blank,
-            Cell::Blank,
-            Cell::Blank,
+            Cell::Empty,
+            Cell::Empty,
+            Cell::Empty,
             Cell::Filled,
-            Cell::Blank,
+            Cell::Empty,
             Cell::Filled,
             Cell::Filled,
             Cell::Filled,
-            Cell::Blank,
+            Cell::Empty,
             Cell::Filled,
-            Cell::Blank,
-            Cell::Blank,
+            Cell::Empty,
+            Cell::Empty,
         ];
         let hint = vec![3, 4];
         assert!(WorkingNonogram::is_axis_solved(axis, hint));
@@ -375,21 +365,21 @@ mod tests {
     #[test]
     fn is_axis_solved() {
         let axis = vec![
-            Cell::Blank,
+            Cell::Empty,
             Cell::Filled,
             Cell::Filled,
             Cell::Filled,
-            Cell::Blank,
-            Cell::Blank,
-            Cell::Blank,
+            Cell::Empty,
+            Cell::Empty,
+            Cell::Empty,
             Cell::Filled,
-            Cell::Blank,
-            Cell::Filled,
-            Cell::Filled,
+            Cell::Empty,
             Cell::Filled,
             Cell::Filled,
-            Cell::Blank,
-            Cell::Blank,
+            Cell::Filled,
+            Cell::Filled,
+            Cell::Empty,
+            Cell::Empty,
         ];
         let hint = vec![3, 4];
         assert!(WorkingNonogram::is_axis_solved(axis, hint));
@@ -398,44 +388,44 @@ mod tests {
     #[test]
     fn working_row() {
         let nonogram = WorkingNonogram::from_vec(vec![
-            vec![Cell::Blank, Cell::Filled, Cell::Blank],
-            vec![Cell::Filled, Cell::Blank, Cell::Filled],
-            vec![Cell::Filled, Cell::Filled, Cell::Blank],
+            vec![Cell::Empty, Cell::Filled, Cell::Empty],
+            vec![Cell::Filled, Cell::Empty, Cell::Filled],
+            vec![Cell::Filled, Cell::Filled, Cell::Empty],
         ])
         .unwrap();
         assert_eq!(
             nonogram.row(0),
-            vec![Cell::Blank, Cell::Filled, Cell::Blank]
+            vec![Cell::Empty, Cell::Filled, Cell::Empty]
         );
         assert_eq!(
             nonogram.row(1),
-            vec![Cell::Filled, Cell::Blank, Cell::Filled]
+            vec![Cell::Filled, Cell::Empty, Cell::Filled]
         );
         assert_eq!(
             nonogram.row(2),
-            vec![Cell::Filled, Cell::Filled, Cell::Blank]
+            vec![Cell::Filled, Cell::Filled, Cell::Empty]
         );
     }
 
     #[test]
     fn working_col() {
         let nonogram = WorkingNonogram::from_vec(vec![
-            vec![Cell::Blank, Cell::Filled, Cell::Blank],
-            vec![Cell::Filled, Cell::Blank, Cell::Filled],
-            vec![Cell::Filled, Cell::Filled, Cell::Blank],
+            vec![Cell::Empty, Cell::Filled, Cell::Empty],
+            vec![Cell::Filled, Cell::Empty, Cell::Filled],
+            vec![Cell::Filled, Cell::Filled, Cell::Empty],
         ])
         .unwrap();
         assert_eq!(
             nonogram.col(0),
-            vec![Cell::Blank, Cell::Filled, Cell::Filled]
+            vec![Cell::Empty, Cell::Filled, Cell::Filled]
         );
         assert_eq!(
             nonogram.col(1),
-            vec![Cell::Filled, Cell::Blank, Cell::Filled]
+            vec![Cell::Filled, Cell::Empty, Cell::Filled]
         );
         assert_eq!(
             nonogram.col(2),
-            vec![Cell::Blank, Cell::Filled, Cell::Blank]
+            vec![Cell::Empty, Cell::Filled, Cell::Empty]
         );
     }
 

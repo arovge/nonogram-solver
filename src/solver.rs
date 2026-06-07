@@ -1,6 +1,10 @@
 use crate::nonogram::{NonogramHints, NotSolved, SolvedNonogram, WorkingNonogram};
 
-fn solve(hints: NonogramHints) -> Result<SolvedNonogram, NotSolved> {
+fn solve(hints: NonogramHints) -> SolvedNonogram {
+    try_solve(hints).unwrap()
+}
+
+fn try_solve(hints: NonogramHints) -> Result<SolvedNonogram, NotSolved> {
     let mut nonogram = WorkingNonogram::new(&hints);
     let len = nonogram.len();
 
@@ -75,7 +79,7 @@ fn full_col() {
     )
     .unwrap();
 
-    assert_eq!(solve(hints).ok(), Some(expected));
+    assert_eq!(solve(hints), expected);
 }
 
 #[test]
@@ -95,7 +99,7 @@ fn full_row() {
     )
     .unwrap();
 
-    assert_eq!(solve(puzzle).ok(), Some(expected));
+    assert_eq!(solve(puzzle), expected);
 }
 
 #[test]
@@ -115,7 +119,7 @@ fn row_len_eq_hint_len_plus_one() {
     )
     .unwrap();
 
-    assert_eq!(solve(puzzle).ok(), Some(expected));
+    assert_eq!(solve(puzzle), expected);
 }
 
 #[test]
@@ -179,5 +183,5 @@ fn solves() {
     )
     .unwrap();
 
-    assert_eq!(solve(puzzle).ok(), Some(expected));
+    assert_eq!(solve(puzzle), expected);
 }
