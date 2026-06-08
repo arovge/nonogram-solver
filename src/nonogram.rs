@@ -176,9 +176,9 @@ impl From<RowColLenMismatch> for SolvedNonogramParseError {
     }
 }
 
-impl Into<String> for SolvedNonogram {
-    fn into(self) -> String {
-        self.0
+impl From<SolvedNonogram> for String {
+    fn from(val: SolvedNonogram) -> Self {
+        val.0
             .iter()
             .map(|row| {
                 row.iter()
